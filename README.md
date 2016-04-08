@@ -51,8 +51,6 @@ Assuming the following folder structure is in place:
         debug: msg="Hello world!"
       - name: Ensure apache is at the latest version
         yum: name=httpd state=latest
-      - name: Display all variables/facts known for a host
-        debug: var=hostvars[inventory_hostname]
     ...
 
 If you run ansible-playbook, as a user who has sudo rights, in the folder containing the ansible.cfg + test.yml files + callback_plugins sub folder, as follows:
