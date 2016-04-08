@@ -14,8 +14,11 @@
 # Inspired from: https://github.com/redhat-openstack/khaleesi/blob/master/plugins/callbacks/human_log.py
 # Further improved support Ansible 2.0
 
+# Make coding more python3-ish
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
+
+from ansible.plugins.callback import CallbackBase
 
 try:
     import simplejson as json
@@ -27,7 +30,7 @@ FIELDS = ['cmd', 'command', 'start', 'end', 'delta', 'msg', 'stdout',
           'stderr', 'results']
 
 
-class CallbackModule(object):
+class CallbackModule(CallbackBase):
 
     """
     Ansible callback plugin for human-readable result logging
@@ -43,16 +46,13 @@ class CallbackModule(object):
                 no_log = data.get('_ansible_no_log')
                 if field in data.keys() and data[field] and no_log != True:
                     output = self._format_output(data[field])
-                    print("\n{0}: {1}".format(field, output.replace("\\n","\n")))
+                    self._display.display("\n{0}:\n{1}".format(field, output.replace("\\n","\n")), log_only=True)
 
     def _format_output(self, output):
-        # Strip unicode
-        if type(output) == unicode:
-            output = output.encode('ascii', 'replace')
 
         # If output is a dict
         if type(output) == dict:
-            return json.dumps(output, indent=2)
+            return json.dumps(output, indent=2, sort_keys=True)
 
         # If output is a list of dicts
         if type(output) == list and type(output[0]) == dict:
@@ -66,94 +66,17 @@ class CallbackModule(object):
                         if field in item.keys():
                             copy[field] = self._format_output(item[field])
                 real_output.append(copy)
-            return json.dumps(output, indent=2)
+            return json.dumps(output, indent=2, sort_keys=True)
 
-        # If output is a list of strings
+        # If output is a list of strings convert it to a string before
+        # returning it.
         if type(output) == list and type(output[0]) != dict:
-            # Strip newline characters
-            real_output = list()
-            for item in output:
-                if "\n" in item:
-                    for string in item.split("\n"):
-                        real_output.append(string)
-                else:
-                    real_output.append(item)
-
-            # Reformat lists with line breaks only if the total length is
-            # >75 chars
-            if len("".join(real_output)) > 75:
-                return "\n" + "\n".join(real_output)
-            else:
-                return " ".join(real_output)
+            return '\n'.join(output)
 
         # Otherwise it's a string, (or an int, float, etc.) just return it
         return str(output)
 
-    def on_any(self, *args, **kwargs):
-        pass
 
-    def runner_on_failed(self, host, res, ignore_errors=False):
-        self.human_log(res)
-
-    def runner_on_ok(self, host, res):
-        self.human_log(res)
-
-    def runner_on_skipped(self, host, item=None):
-        pass
-
-    def runner_on_unreachable(self, host, res):
-        self.human_log(res)
-
-    def runner_on_no_hosts(self):
-        pass
-
-    def runner_on_async_poll(self, host, res, jid, clock):
-        self.human_log(res)
-
-    def runner_on_async_ok(self, host, res, jid):
-        self.human_log(res)
-
-    def runner_on_async_failed(self, host, res, jid):
-        self.human_log(res)
-
-    def playbook_on_start(self):
-        pass
-
-    def playbook_on_notify(self, host, handler):
-        pass
-
-    def playbook_on_no_hosts_matched(self):
-        pass
-
-    def playbook_on_no_hosts_remaining(self):
-        pass
-
-    def playbook_on_task_start(self, name, is_conditional):
-        pass
-
-    def playbook_on_vars_prompt(self, varname, private=True, prompt=None, encrypt=None, confirm=False, salt_size=None, salt=None, default=None):
-        pass
-
-    def playbook_on_setup(self):
-        pass
-
-    def playbook_on_import_for_host(self, host, imported_file):
-        pass
-
-    def playbook_on_not_import_for_host(self, host, missing_file):
-        pass
-
-    def playbook_on_play_start(self, name):
-        pass
-
-    def playbook_on_stats(self, stats):
-        pass
-
-    def on_file_diff(self, host, diff):
-        pass
-
-
-    ####### V2 METHODS ######
     def v2_on_any(self, *args, **kwargs):
         pass
 
